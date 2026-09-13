@@ -1,0 +1,10 @@
+services:
+  zitie:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: bishun-zitie:latest
+    container_name: bishun-zitie
+    ports:
+      - "8080:80"
+    restart: unless-stopped

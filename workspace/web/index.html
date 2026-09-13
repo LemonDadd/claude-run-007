@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>笔顺字帖 · 汉字笔画动画与临摹本</title>
+<meta name="description" content="输入汉字，逐笔播放笔顺动画，生成田字格/米字格/描红/空白临摹本，可导出 PDF/PNG，离线可用。">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='16' fill='%23c0392b'/%3E%3Ctext x='50' y='68' font-size='58' text-anchor='middle' fill='white' font-family='serif'%3E字%3C/text%3E%3C/svg%3E">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#c0392b">
+<link rel="stylesheet" href="css/app.css">
+</head>
+<body>
+<header class="topbar">
+  <div class="brand">
+    <span class="logo">字</span>
+    <div>
+      <h1>笔顺字帖</h1>
+      <p class="sub">逐笔动画 · 临摹本 · PDF 导出 · 离线可用</p>
+    </div>
+  </div>
+  <nav class="tabs" id="tabs">
+    <button class="tab active" data-tab="animate">笔顺动画</button>
+    <button class="tab" data-tab="sheet">临摹本</button>
+    <button class="tab" data-tab="batch">批量字帖</button>
+    <button class="tab" data-tab="lib">收藏库</button>
+    <button class="tab" data-tab="settings">设置</button>
+  </nav>
+</header>
+
+<main>
+  <!-- ============ 笔顺动画 ============ -->
+  <section class="panel active" id="tab-animate">
+    <div class="input-row card">
+      <input type="text" id="charInput" maxlength="40" placeholder="输入一个或多个汉字，如：永" autocomplete="off">
+      <button id="btnPlayChar" class="primary">播放</button>
+      <div class="hint" id="charMeta"></div>
+    </div>
+
+    <div class="anim-layout">
+      <div class="card anim-stage">
+        <div class="char-strip" id="charStrip"></div>
+        <div class="svg-wrap" id="svgWrap"></div>
+        <div class="stroke-info" id="strokeInfo"></div>
+        <div class="controls">
+          <button id="btnPlay" title="播放/暂停 (空格)">▶</button>
+          <button id="btnPrev" title="上一笔 (←)">⏮</button>
+          <button id="btnNext" title="下一笔 (→)">⏭</button>
+          <span class="ctrl-sep"></span>
+          <button id="btnCharPrev" title="上一字 (↑ / PageUp)">‹ 字</button>
+          <button id="btnCharNext" title="下一字 (↓ / PageDown)">字 ›</button>
+          <label class="chk" title="一个字播完自动连播列表里的下一字">
+            <input type="checkbox" id="autoNextChk" checked> 连播
+          </label>
+          <label class="loop-mode">循环
+            <select id="loopMode">
+              <option value="off">不循环</option>
+              <option value="one">单字循环</option>
+              <option value="list">列表循环</option>
+            </select>
+          </label>
+          <label class="speed">笔速
+            <input type="range" id="speedRange" min="0.3" max="3" step="0.1" value="1">
+            <span id="speedVal">1.0×</span>
+          </label>
+          <label class="ghost-op">底字
+            <input type="range" id="ghostRange" min="0" max="60" step="5" value="18">
+          </label>
+          <label class="chk"><input type="checkbox" id="showOutline" checked> 轮廓</label>
+          <label class="chk"><input type="checkbox" id="showMedian"> 笔势线</label>
+        </div>
+        <div class="stroke-list" id="strokeList"></div>
+      </div>
+
+      <aside class="card side">
+        <h3>从字帖模板选字</h3>
+        <div class="template-pick" id="tplPickAnim"></div>
+        <h3 style="margin-top:16px">当前字加为字帖</h3>
+        <button id="btnFavChar" class="ghost-btn">☆ 收藏该字</button>
+        <h3 style="margin-top:16px">生成该字临摹本</h3>
+        <button id="btnToSheet" class="ghost-btn">→ 去临摹本设置</button>
+      </aside>
+    </div>
+  </section>
+
+  <!-- ============ 临摹本 ============ -->
+  <section class="panel" id="tab-sheet">
+    <div class="card">
+      <div class="form-grid">
+        <label>文字
+          <input type="text" id="sheetText" placeholder="输入要练习的汉字" value="永字八法">
+        </label>
+        <label>格子
+          <select id="gridType">
+            <option value="mi">米字格</option>
+            <option value="tian" selected>田字格</option>
+            <option value="miao">描红格</option>
+            <option value="blank">空白格</option>
+          </select>
+        </label>
+        <label>每行格数
+          <input type="number" id="cols" min="4" max="16" value="8">
+        </label>
+        <label>每字行数
+          <input type="number" id="rowsPerChar" min="1" max="10" value="2">
+        </label>
+        <label>描红浓度
+          <input type="range" id="traceRange" min="5" max="80" step="5" value="30"><span id="traceVal">30%</span>
+        </label>
+        <label>纸张
+          <select id="paper">
+            <option value="a4">A4 (210×297mm)</option>
+            <option value="a4l">A4 横向</option>
+            <option value="b5">B5 (176×250mm)</option>
+          </select>
+        </label>
+        <label class="chk2"><input type="checkbox" id="showPinyin" checked> 显示拼音</label>
+        <label class="chk2"><input type="checkbox" id="showOrder" checked> 首字标笔顺</label>
+        <label class="chk2"><input type="checkbox" id="dedupe"> 去重（每字只练一遍序列）</label>
+        <label class="chk2"><input type="checkbox" id="showHeader" checked> 页眉（标题 / 姓名）</label>
+        <label>页眉标题
+          <input type="text" id="headerTitle" placeholder="如：三年二班练习" maxlength="30">
+        </label>
+        <label>姓名（留空则画填写虚线）
+          <input type="text" id="headerName" placeholder="留空打印手写" maxlength="20">
+        </label>
+      </div>
+      <div class="btn-row">
+        <button id="btnPreview" class="primary">生成预览</button>
+        <button id="btnPrint">🖨 打印</button>
+        <button id="btnPdf">📄 导出 PDF</button>
+        <button id="btnPng">🖼 导出 PNG</button>
+        <button id="btnSaveSheet">☆ 存为字帖</button>
+        <span class="hint" id="sheetHint"></span>
+      </div>
+    </div>
+    <div id="sheetPreview" class="sheet-preview"></div>
+  </section>
+
+  <!-- ============ 批量字帖 ============ -->
+  <section class="panel" id="tab-batch">
+    <div class="card">
+      <h3>字帖模板</h3>
+      <div class="template-pick" id="tplPickBatch"></div>
+      <div class="form-grid" style="margin-top:12px">
+        <label>批量文字
+          <textarea id="batchText" rows="3" placeholder="或直接粘贴一段文字，将自动提取其中的汉字"></textarea>
+        </label>
+        <label>取字数（0 = 全部）
+          <input type="number" id="batchLimit" min="0" value="100">
+        </label>
+      </div>
+      <div class="btn-row">
+        <button id="btnBatchAnim" class="primary">在动画中逐字学习</button>
+        <button id="btnBatchSheet">生成临摹本</button>
+        <button id="btnBatchFav">☆ 整段收藏</button>
+        <span class="hint" id="batchHint"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 收藏库 ============ -->
+  <section class="panel" id="tab-lib">
+    <div class="card">
+      <div class="btn-row" style="justify-content:space-between">
+        <h3 style="margin:0">我的字帖与收藏</h3>
+        <div>
+          <button id="btnExportJson">⇩ 导出 JSON</button>
+          <button id="btnImportJson">⇧ 导入 JSON</button>
+          <input type="file" id="importFile" accept="application/json,.json" hidden>
+        </div>
+      </div>
+      <div id="favList" class="fav-list"></div>
+    </div>
+  </section>
+
+  <!-- ============ 设置 ============ -->
+  <section class="panel" id="tab-settings">
+    <div class="card settings">
+      <h3>播放设置</h3>
+      <label>默认笔速 <input type="range" id="setSpeed" min="0.3" max="3" step="0.1"><span id="setSpeedVal"></span></label>
+      <label>每笔停留 (ms) <input type="number" id="setHold" min="0" max="2000" step="50"></label>
+      <label>循环模式
+        <select id="setLoopMode">
+          <option value="off">不循环</option>
+          <option value="one">单字循环（反复播放当前字）</option>
+          <option value="list">列表循环（播完整个字条再从头）</option>
+        </select>
+      </label>
+      <label class="chk2"><input type="checkbox" id="setAutoNext"> 多字自动连播（一字播完进入下一字）</label>
+      <h3>数据</h3>
+      <p class="hint">约 6900 个常用字笔顺数据已内置（Make Me a Hanzi, ARPHIC）。字块按需加载并缓存到浏览器 IndexedDB，首次访问后可完全离线使用。</p>
+      <div class="btn-row">
+        <button id="btnPreload">预加载全部字块（约 19MB）</button>
+        <button id="btnClearCache" class="danger">清除本地缓存</button>
+        <span class="hint" id="cacheInfo"></span>
+      </div>
+      <h3>关于</h3>
+      <p class="hint">本应用为纯本地静态页面，所有数据保存在你的浏览器中，不上传任何内容。Docker 部署：<code>docker compose up --build</code>。</p>
+    </div>
+  </section>
+</main>
+
+<div id="toast" class="toast"></div>
+<script src="vendor/jspdf.umd.min.js"></script>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
